@@ -1,9 +1,11 @@
 #include <Arduino.h>
 #include <Adafruit_Fingerprint.h>
 #include <WiFi.h>
+#include <Keypad.h>
 #include "Finger_check.h"
 #include "enroll.h"
 #include "wifi_setup.h"
+#include "keyCode.h"
 
 
 
@@ -14,6 +16,8 @@ Adafruit_Fingerprint finger = Adafruit_Fingerprint(&serialPort);
 
 uint8_t id;
 uint8_t fingerId;
+bool passcodeVerified = false;
+String passcode = "";
 void connectWiFi();
 
 void setup()
@@ -91,27 +95,70 @@ void loop(){
     connectWiFi();
   }
   
+Serial.println("Welcome to StockSync!");
 
-  Serial.println("Welcome to StockSync!");
-  Serial.println("Please enter : 1 to check fingerprint or enter : 2 for enroll new fingerprint");
-  id = readnumber();
-  if (id == 2) {
-    Serial.println("Ready to enroll a fingerprint!");
-    Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
-    fingerId = idForFingerprint();
-    if (id == 0){ // ID #0 not allowed, try again!
-      return;
+while (true) {
+    Serial.println("Enter the password:");
+    passcode = ""; // Clear passcode
+    passcodeVerified = false; // Reset passcode verification flag
+    while (!passcodeVerified) {
+        if (kpd.getKeys()) {
+            for (int i = 0; i < LIST_MAX; i++) {
+                if (kpd.key[i].stateChanged && kpd.key[i].kstate == PRESSED) {
+                    Serial.println(kpd.key[i].kchar);
+                    if (kpd.key[i].kchar == '#') {
+                        if (passcode == "8504") {
+                            Serial.println("Passcode OK!");
+                            while(getFingerprintID() == 2)
+                              ;
+                            passcodeVerified = true; // Set flag to true to exit passcode entry loop
+                            break; // Exit passcode entry loop
+                        } else {
+                            Serial.println("Invalid Password! Try again.");
+                            passcode = "";
+                            break;
+                        }
+                    } else {
+                        passcode += kpd.key[i].kchar;
+                    }
+                }
+            }
+        }
+        delay(100); // Add a small delay to avoid busy loop
     }
-    Serial.print("Enrolling ID #");
-    Serial.println(fingerId);
+}
 
-    while (!getFingerprintEnroll(fingerId))
-      ;
-  }else if(id == 1){
-    while(getFingerprintID() == 2)
-      ;
-  }else{
-    Serial.println("Invalid Input");
-  }
+  // Serial.println("Please enter : 1 to check fingerprint or enter : 2 for enroll new fingerprint");
+  // //id = readnumber();
+  // delay(100);
+  // if(kpd.getKeys()){
+  //   for(int i = 0; i < LIST_MAX; i++){
+  //     if(kpd.key[i].stateChanged && kpd.key[i].kstate == PRESSED){
+  //       Serial.println(kpd.key[i].kchar);
+  //         if ( kpd.key[i].kchar == '2') {
+  //           Serial.println("Ready to enroll a fingerprint!");
+  //           Serial.println("Please type in the ID # (from 1 to 127) you want to save this finger as...");
+  //           fingerId = idForFingerprint();
+  //           if (id == 0){ // ID #0 not allowed, try again!
+  //             return;
+  //           }
+  //           Serial.print("Enrolling ID #");
+  //           Serial.println(fingerId);
+
+  //           while (!getFingerprintEnroll(fingerId))
+  //             ;
+  //         }else if(kpd.key[i].kchar == '1'){
+  //           while(getFingerprintID() == 2)
+  //             ;
+  //         }else{
+  //           Serial.println("Invalid Input");
+  //         }
+  //     }
+  //   }
+  //   passcode = "";
+  //   passcodeVerified = false;
+  // }
+  
+ 
 }
 
