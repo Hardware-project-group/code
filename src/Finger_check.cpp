@@ -1,45 +1,54 @@
 #include <Arduino.h>
 #include <Adafruit_Fingerprint.h>
+#include <Arduino_JSON.h>
 #include <HTTPClient.h>
+
+#include "DoorOpen.h"
 #include "Finger_check.h"
 #include "wifi_setup.h"
+#include "Display.h"
 
-String URL = "http://10.13.127.54/web_test.php";
-
-void sendData(int id){
-    String postdata = "a=" + String(id);
-
-    HTTPClient http;
-    http.begin(URL);
-    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-    int httpcode = http.POST(postdata);
-    String payload = http.getString();
-
-    Serial.print("httpCode: ");
-    Serial.println(httpcode);
-    Serial.println(payload);
-
-}
+const char* serverAddress = "http://192.168.137.1/TestEsp/sendaccess.php";
+String postData = "id=";
+String payload = "";
+int httpCode; 
 
 uint8_t getFingerprintID()
 {
+    Displaysetup();
+
     uint8_t p = finger.getImage();
     switch (p)
     {
     case FINGERPRINT_OK:
-        Serial.println("Image taken");
+        lcd.clear();
+        Serial.print("Image taken");
+        lcd.print("Image taken");
+        delay(1000);
         break;
     case FINGERPRINT_NOFINGER:
-        Serial.println("No finger detected");
+        Serial.print("No finger detected");
+        lcd.clear();
+        lcd.print("No finger detected");
+        delay(1000);
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.print("Communication error");
+        lcd.clear();
+        lcd.print("Communication error. Try again!");
+        delay(1000);
         return p;
     case FINGERPRINT_IMAGEFAIL:
-        Serial.println("Imaging error");
+        Serial.print("Imaging error");
+        lcd.clear();
+        lcd.print("Imaging error..Try Again!");
+        delay(1000);
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.print("Unknown error");
+        lcd.clear();
+        lcd.print("Unknown error.Try again!");
+        delay(1000);
         return p;
     }
 
@@ -52,19 +61,32 @@ uint8_t getFingerprintID()
         Serial.println("Image converted");
         break;
     case FINGERPRINT_IMAGEMESS:
-        Serial.println("Image too messy");
+        Serial.print("Image too messy");
+        lcd.clear();
+        lcd.print("Image too messy . Try again!");
+        delay(1000);
         return p;
     case FINGERPRINT_PACKETRECIEVEERR:
-        Serial.println("Communication error");
+        Serial.print("Communication error");
+        lcd.clear();
+        lcd.print("Communication error. Try again!");
+        delay(1000);
         return p;
     case FINGERPRINT_FEATUREFAIL:
-        Serial.println("Could not find fingerprint features");
+        Serial.print("Could not find fingerprint features");
+        lcd.clear();
+        lcd.print("Something went wrong!");
+        delay(1000);
         return p;
     case FINGERPRINT_INVALIDIMAGE:
-        Serial.println("Could not find fingerprint features");
+        Serial.print("Could not find fingerprint features");
+        lcd.clear();
+        lcd.print("Something went wrong!");
+        delay(1000);
         return p;
     default:
-        Serial.println("Unknown error");
+        Serial.print("Unknown error");
+        delay(1000);
         return p;
     }
 
@@ -72,16 +94,21 @@ uint8_t getFingerprintID()
     p = finger.fingerSearch();
     if (p == FINGERPRINT_OK)
     {
-        Serial.println("Found a print match!");
+        Serial.print("Fingerprint Confirm");
+        delay(100);
     }
     else if (p == FINGERPRINT_PACKETRECIEVEERR)
     {
-        Serial.println("Communication error");
+        Serial.print("Communication error");
+        delay(1000);
         return p;
     }
     else if (p == FINGERPRINT_NOTFOUND)
     {
-        Serial.println("Did not find a match");
+        Serial.print("Did not find a match");
+        lcd.clear();
+        lcd.print("Did not find a match");
+        delay(5000);
         return p;
     }
     else
@@ -91,12 +118,29 @@ uint8_t getFingerprintID()
     }
 
     // found a match!
+    lcd.clear();
     Serial.print("Found ID #");
+    lcd.print("Found ID #");
     Serial.print(finger.fingerID);
-    Serial.print(" with confidence of ");
+    lcd.print(finger.fingerID);
+    OpenDoor();
+    
+    HTTPClient http;
+    http.begin(serverAddress);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    postData = postData + String(finger.fingerID);
+     Serial.println(postData);
+    httpCode = http.POST(postData);
+    payload = http.getString(); 
+    Serial.print("httpCode : ");
+    Serial.println(httpCode); //--> Print HTTP return code
+    Serial.print("payload  : ");
+    Serial.println(payload);  //--> Print request response payload
+    http.end();
+    postData = "id=";
+    delay(5000);
+    Serial.println(" with confidence of ");
     Serial.println(finger.confidence);
-    sendData(finger.fingerID);
-
     return finger.fingerID;
 }
 
@@ -116,10 +160,28 @@ int getFingerprintIDez()
         return -1;
 
     // found a match!
+    lcd.clear();
     Serial.print("Found ID #");
     Serial.print(finger.fingerID);
-    Serial.print(" with confidence of ");
-    Serial.println(finger.confidence);
-    sendData(finger.fingerID);
+    lcd.print("Found ID #");
+    lcd.print(finger.fingerID);
+    OpenDoor();
+    
+    HTTPClient http;
+    http.begin(serverAddress);
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    postData = postData + String(finger.fingerID);
+    Serial.println(postData);
+    httpCode = http.POST(postData);
+    payload = http.getString(); 
+    Serial.print("httpCode : ");
+    Serial.println(httpCode); //--> Print HTTP return code
+    Serial.print("payload  : ");
+    Serial.println(payload);  //--> Print request response payload
+    http.end();
+    postData = "id=";
+    delay(5000);
+    Serial.println(" with confidence of ");
+    Serial.print(finger.confidence);
     return finger.fingerID;
 }

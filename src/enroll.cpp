@@ -6,6 +6,7 @@
 uint8_t getFingerprintEnroll(uint8_t fingerId)
 {
 
+
   int p = -1;
   Serial.print("Waiting for valid finger to enroll as #");
   Serial.println(fingerId);
@@ -30,6 +31,7 @@ uint8_t getFingerprintEnroll(uint8_t fingerId)
       Serial.println("Unknown error");
       break;
     }
+    delay(100);
   }
 
   // OK success!
@@ -56,9 +58,10 @@ uint8_t getFingerprintEnroll(uint8_t fingerId)
     Serial.println("Unknown error");
     return p;
   }
+  delay(10);
 
   Serial.println("Remove finger");
-  delay(2000);
+  delay(200);
   p = 0;
   while (p != FINGERPRINT_NOFINGER)
   {
@@ -89,6 +92,7 @@ uint8_t getFingerprintEnroll(uint8_t fingerId)
       Serial.println("Unknown error");
       break;
     }
+    delay(100);
   }
 
   // OK success!
@@ -168,6 +172,5 @@ uint8_t getFingerprintEnroll(uint8_t fingerId)
     Serial.println("Unknown error");
     return p;
   }
-
   return true;
 }
